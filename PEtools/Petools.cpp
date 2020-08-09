@@ -281,7 +281,7 @@ VOID get_Export(PBYTE pBuf) {
 void help() {
 	printf("PEtools V1.0.0 For PE file Analysis\n");
 	printf("Copyright 2020-08-01 0xCC\n");
-	printf("By zqq <1597048403@qq.com>\n\n");
+	printf("Author by<1220676904@qq.com>\n\n");
 	printf("usage: PEtools <PE_file_path> [option]\n\n");
 	printf("PE_file_path:    the absolute path of PE to analysis\n\n");
 	printf("option: \n");
