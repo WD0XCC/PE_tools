@@ -277,11 +277,53 @@ VOID get_Export(PBYTE pBuf) {
 		}
 	}
 }
+//重定位表
+VOID get_relocation(PBYTE  pBuf){
+	//NT头
+	PIMAGE_DOS_HEADER pDos = PIMAGE_DOS_HEADER(pBuf);
+	PIMAGE_NT_HEADERS pNT = PIMAGE_NT_HEADERS(pBuf + pDos->e_lfanew);
+
+	//数据目录表地址
+	PIMAGE_DATA_DIRECTORY pDirectory = pNT->OptionalHeader.DataDirectory;
+	DWORD dwReloRva = pDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress;
+	PIMAGE_BASE_RELOCATION pReal = (PIMAGE_BASE_RELOCATION)(pBuf + Rva2Fva(dwReloRva, pNT));
+	printf("重定位表的文件偏移：0x%2x\n", pReal);
+
+	while (pReal->VirtualAddress)
+	{
+		DWORD dwCount = (pReal->SizeOfBlock - 8)/sizeof(WORD);
+		printf("重定位RVA: %08x, 重定位块的大小： %x\n", pReal->VirtualAddress, dwCount);
+
+		typedef struct _TYPEOFFECT {
+			WORD  offset : 12;//偏移值
+			WORD  TYpe : 4;//重定位类型
+		}TYPEOFFECT;
+		TYPEOFFECT* pOffset = (TYPEOFFECT*)(pReal + 1);
+		int j = 0;
+		for (int i = 0; i < dwCount; i++) {
+			printf("序号：%2d  重定位类型：%d---重定位的小偏移：%08x", j++, pOffset[i].TYpe, pOffset[i].offset);
+			DWORD dwRVA = pOffset[i].offset + pReal->VirtualAddress;//需要重定位的数据地址
+			if (pOffset[i].TYpe == 3) {
+				DWORD dwFo = Rva2Fva(dwRVA, pNT);
+				PDWORD  DATA = (PDWORD)(pBuf + dwFo);
+				printf("   重定位的数据是: %08x\n", *DATA);
+			}
+			else
+			{
+				printf("重定位的数据为：%08x\n\n", dwRVA);
+			}
+		}
+		pReal = (PIMAGE_BASE_RELOCATION)(PBYTE(pReal) + pReal->SizeOfBlock);
+
+	}
+	printf("\n");
+
+}
 //帮助说明
 void help() {
 	printf("PEtools V1.0.0 For PE file Analysis\n");
 	printf("Copyright 2020-08-01 0xCC\n");
-	printf("Author by<1220676904@qq.com>\n\n");
+	printf("powered by<1220676904@qq.com>\n\n");
 	printf("usage: PEtools <PE_file_path> [option]\n\n");
 	printf("PE_file_path:    the absolute path of PE to analysis\n\n");
 	printf("option: \n");
@@ -290,6 +332,7 @@ void help() {
 	printf("	-s:     get IMAGE_SECTION_HEADER Stracture data\n");
 	printf("	-i:     get IMAGE_IMPORT_DESCRIPTOR Stracture data\n");
 	printf("	-o:     get IMAGE_EXPORT_DESCRIPTOR Stracture data\n");
+	printf("	-r:     get IMAGE_EXPORT_DESCRIPTOR Stracture data\n");
 // 	printf("usage: PEtools\n");
 // 	printf("usage: PEtools\n");
 
@@ -336,6 +379,11 @@ int main(int argc, char *argv[]) {
 			case 'o':
 			{
 				get_Export(PEbuf);
+				break;
+			}
+			case 'r':
+			{
+				get_relocation(PEbuf);
 				break;
 			}
 			case 'h':
